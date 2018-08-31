@@ -128,5 +128,5 @@ var queryForMetrics = function(monitored_object) {
     })
 }
 
-queryForMetrics('CSHBv-CSNC-G023-1365')
-//queryForProfiles()
+//queryForMetrics('CSHBv-CSNC-G023-1365')
+queryForProfiles()
