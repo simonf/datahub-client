@@ -52,6 +52,10 @@ var getProfiles = function() {
 
 var getRawMetrics = function(tenant_id, monitored_object) {
   return new Promise((resolve, reject) => {
+	var until = new Date()
+	var from = new Date(until.getTime()-(3600000))
+	console.log(until + ' - ' + from)
+
       var options = {
 	  url: credentials.rawmetrics_url,
 	  headers: {
@@ -61,11 +65,14 @@ var getRawMetrics = function(tenant_id, monitored_object) {
 	  json: true,
 	  body:{
 	      tenantId:tenant_id,
-	      interval:'2018-08-25T11:12:53-04:00/2018-08-29T11:12:53-04:00',
-	      granularity:'PT1H',
+//	      interval:'2018-08-25T11:12:53-04:00/2018-08-29T11:12:53-04:00',
+	      interval: from.toISOString()+'/'+until.toISOString(),
+	      granularity:'PT0.667S',
 	      timeout:30000,
-	      metrics:['delayMin', 'packetsReceived'],
-	      directions:['1'],
+//	      delayMax,delayP95,delayPHi,delayVarP95,delayVarPHi,jitterMax,jitterP95,jitterPHi,lostBurstMax,packetsLost,packetsLostPct,packetsReceived,delayMin,delayAvg,delayStdDevAvg,delayVarMin,delayVarMax,delayVarAvg,packetsMisordered,packetsDuplicated,packetsTooLate,periodsLost,lostBurstMin,bytesReceived,ipTOSMin,ipTOSMax,ttlMin,ttlMax,vlanPBitMin
+	    
+	      metrics:['delayMax','jitterMax','packetsLost','packetsReceived','delayVarMax','bytesReceived'],
+	      directions:['1','2'],
 	      objectType:'twamp-sf'
 	  }
       }
@@ -108,6 +115,7 @@ var queryForMetrics = function(monitored_object) {
 	login_token = token
 	return getTenants(token)
     }).then((tenant_id) => {
+	console.log('Tenant ID: ' + tenant_id)
 	return getRawMetrics(tenant_id,monitored_object)
 //    }).then((data) => {
 //	for(var item in data) {
@@ -128,5 +136,5 @@ var queryForMetrics = function(monitored_object) {
     })
 }
 
-//queryForMetrics('CSHBv-CSNC-G023-1365')
-queryForProfiles()
+queryForMetrics('GT-1-to-GT-2-G280-0057')
+//queryForProfiles()
