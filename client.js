@@ -62,7 +62,7 @@ var dumpProperties = function(name, obj) {
 var getRawMetrics = function(tenant_id, monitored_object) {
   return new Promise((resolve, reject) => {
 	var until = new Date()
-	var from = new Date(until.getTime()-(3600000))
+	var from = new Date(until.getTime()-(600000))
 	console.log(until + ' - ' + from)
 
       var options = {
@@ -125,8 +125,23 @@ var queryForMetrics = function(monitored_object) {
 	return getRawMetrics(tenant_id,monitored_object)
     }).then((metricarray) => {
 	if(metricarray && metricarray.length > 0) {
-//	    console.log('---- Data for ' + monitored_object + ' ----')
-	    var processed_data = metricarray.map(postProcess)
+	    var processed_data = {
+		'fwdDelayMax': [],
+		'fwdJitterMax': [],
+		'fwdPacketsLost': [],
+		'fwdPacketsReceived': [],
+		'fwdDelayVarMax': [],
+		'fwdBytesReceived': [],
+		'revDelayMax': [],
+		'revJitterMax': [],
+		'revPacketsLost': [],
+		'revPacketsReceived': [],
+		'revDelayVarMax': [],
+		'revBytesReceived': []
+	    }
+	    metricarray.forEach(function(element) {
+		postProcess(processed_data, element)
+	    })
 	    return processed_data
 	} else {
 	    console.log('No data for '+monitored_object)
@@ -138,37 +153,25 @@ var queryForMetrics = function(monitored_object) {
     })
 }
 
-
-
-var postProcess = function(element) {
+var postProcess = function(retval, element) {
     var directions = ['1','2']
-//    console.log(util.inspect(element))
-//    console.log('=======>>>>>>')
-    var newElement = {}
-    newElement.timestamp = new Date(element.timestamp)
     directions.forEach(function(item) {
 	if(element.hasOwnProperty(item)) {
 	    for (prop in element[item]) {
+		var newElement = { x: new Date(element.timestamp), y: element[item][prop] }
 		var newprop = prop.charAt(0).toUpperCase() + prop.slice(1)
-		newattribname = item == '1' ? 'fwd'+newprop : 'rev'+newprop
-		newElement[newattribname] = element[item][prop]
+		var newattribname = item == '1' ? 'fwd'+newprop : 'rev'+newprop
+		retval[newattribname].push(newElement)
 	    }
 	}
     })
-//    console.log(util.inspect(newElement))
-//    console.log('\n\n')
-    return newElement
 }
+
+
 
 queryForMetrics('GT-1-to-GT-2-EF-G280-0057').then((data)=>{
     console.log(util.inspect(data))
 })
-
-//queryForProfiles()
-
-
-
-
 
 
 
