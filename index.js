@@ -1,13 +1,16 @@
 const util = require('util')
+const request = require('request')
+const express = require('express')
 const credentials = require('./credentials')
-var request = require('request')
+
+var cors = require('cors')
+var app = express()
+app.use(cors())
+
 var login_token = ''
 var tenant_id = ''
 var debug = false;
 var monitored_object = 'GT-1-to-GT-2-EF-G280-0057'
-
-const express = require('express')
-const app = express()
 
 
 var login = function(username, password) {
@@ -44,7 +47,7 @@ var getTenants = function(token) {
 var getRawMetrics = function(tenant_id, monitored_object) {
   return new Promise((resolve, reject) => {
 	var until = new Date()
-	var from = new Date(until.getTime()-(3600000))
+	var from = new Date(until.getTime()-(600000))
 	console.log(until + ' - ' + from)
 
       var options = {
@@ -76,26 +79,18 @@ var getRawMetrics = function(tenant_id, monitored_object) {
 }
 
 
-
-
-
-
-var postProcess = function(element) {
+var postProcess = function(retval, element) {
     var directions = ['1','2']
-//    console.log(util.inspect(element))
-//    console.log('=======>>>>>>')
-    var newElement = {}
-    newElement.timestamp = new Date(element.timestamp)
     directions.forEach(function(item) {
 	if(element.hasOwnProperty(item)) {
 	    for (prop in element[item]) {
+		var newElement = { x: new Date(element.timestamp), y: element[item][prop] }
 		var newprop = prop.charAt(0).toUpperCase() + prop.slice(1)
-		newattribname = item == '1' ? 'fwd'+newprop : 'rev'+newprop
-		newElement[newattribname] = element[item][prop]
+		var newattribname = item == '1' ? 'fwd'+newprop : 'rev'+newprop
+		retval[newattribname].push(newElement)
 	    }
 	}
     })
-    return newElement
 }
 
 
@@ -103,7 +98,23 @@ app.get('/', (req, resp) => {
     console.log('Received request')
     getRawMetrics(tenant_id,monitored_object).then((metricarray) => {
 	if(metricarray && metricarray.length > 0) {
-	    var processed_data = metricarray.map(postProcess)
+	    var processed_data = {
+		'fwdDelayMax': [],
+		'fwdJitterMax': [],
+		'fwdPacketsLost': [],
+		'fwdPacketsReceived': [],
+		'fwdDelayVarMax': [],
+		'fwdBytesReceived': [],
+		'revDelayMax': [],
+		'revJitterMax': [],
+		'revPacketsLost': [],
+		'revPacketsReceived': [],
+		'revDelayVarMax': [],
+		'revBytesReceived': []
+	    }
+	    metricarray.forEach(function(element) {
+		postProcess(processed_data, element)
+	    })
 	    resp.status(200).json(processed_data)
 	} else {
 	    resp.status(404).json({error: 'No data for '+monitored_object})
